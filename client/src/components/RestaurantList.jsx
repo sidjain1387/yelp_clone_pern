@@ -2,13 +2,15 @@ import React, { useEffect,useContext } from 'react';
 import RestaurantFinder from "../apis/RestaurantFinder.js";
 import { RestaurantsContext } from '../context/RestaurantsContext.js';
 import { useNavigate } from 'react-router-dom';
+import StarRating from './StarRating.jsx';
 
 const RestaurantList = (props) => {
   const {restaurants,setRestaurants}=useContext(RestaurantsContext);
 
   let navigate=useNavigate();
 
-  const handleUpdate=(id)=>{
+  const handleUpdate=(e,id)=>{
+    e.stopPropagation();
     navigate(`/restaurant/${id}/update`);
   }
 
@@ -25,7 +27,8 @@ const RestaurantList = (props) => {
     fetchData();
   }, []);
 
-  async function handleDelete(id){
+  async function handleDelete(e,id){
+    e.stopPropagation();
     try {
       const response=await RestaurantFinder.delete(`/${id}`);
       setRestaurants(restaurants.filter(restaurant=>restaurant.id!==id));      
@@ -34,6 +37,25 @@ const RestaurantList = (props) => {
       
     }
     
+  }
+
+  const renderRating=(restaurant)=>{
+    if(!restaurant.count){
+      return <span className='text-warning'>0 reviews</span>
+    }
+    else {
+
+      return (
+        <>
+      <StarRating rating={restaurant.average_rating}/>
+      <span className='text-warning ml-1'>({restaurant.count})</span>
+      </>
+    )
+  }
+  }
+
+  const handleRestaurantSelect=(id)=>{
+    navigate(`/restaurant/${id}`);
   }
 
   return (
@@ -52,13 +74,13 @@ const RestaurantList = (props) => {
         <tbody>
           {restaurants.map((restaurant) => {
             return (
-            <tr key={restaurant.id}>
+            <tr key={restaurant.id} onClick={()=>handleRestaurantSelect(restaurant.id)}>
               <td>{restaurant.name}</td>
               <td>{restaurant.location}</td>
               <td>{"$".repeat(restaurant.price_range)}</td>
-              <td>Reviews</td>
-              <td><button className='btn btn-warning' onClick={()=>handleUpdate(restaurant.id)}>Update</button></td>
-              <td><button className='btn btn-danger' onClick={()=>handleDelete(restaurant.id)}>Delete</button></td>
+              <td>{renderRating(restaurant)}</td>
+              <td><button className='btn btn-warning' onClick={(e)=>handleUpdate(e,restaurant.id)}>Update</button></td>
+              <td><button className='btn btn-danger' onClick={(e)=>handleDelete(e,restaurant.id)}>Delete</button></td>
             </tr>
           )})}  
         </tbody>

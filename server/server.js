@@ -16,20 +16,25 @@ app.use(express.json());
 
 app.get("/api/v1/restaurants",async(req,res)=>{
     try {
-        const result = await pool.query("SELECT * FROM restaurants");
+        const result=await pool.query("SELECT * FROM restaurants LEFT JOIN (SELECT restaurant_id,COUNT(*),TRUNC(AVG(rating),1) AS average_rating FROM reviews GROUP BY restaurant_id) reviews ON restaurants.id=reviews.restaurant_id");
         res.status(200).json(result.rows);    
     } catch (error) {
        console.error(error.message); 
     }
-
-
 })
 
 //Get a Restaurant
 app.get("/api/v1/restaurants/:id",async(req,res)=>{
     try {
-        const result=await pool.query("SELECT * FROM restaurants WHERE id=$1",[req.params.id]);
-        res.status(200).json(result.rows[0]);
+        const result=await pool.query("SELECT * FROM restaurants LEFT JOIN (SELECT restaurant_id,COUNT(*),TRUNC(AVG(rating),1) AS average_rating FROM reviews GROUP BY restaurant_id) reviews ON restaurants.id=reviews.restaurant_id WHERE id=$1",[req.params.id]);
+        const reviews=await pool.query("SELECT * FROM reviews WHERE restaurant_id=$1",[req.params.id]);
+
+        res.status(200).json(
+            {
+                restaurant:result.rows[0],
+                reviews:reviews.rows
+            }
+        );
         
     } catch (error) {
         console.error(error.message);
@@ -37,6 +42,7 @@ app.get("/api/v1/restaurants/:id",async(req,res)=>{
     }
 
 })
+
 
 //Create a Restaurant
 app.post("/api/v1/restaurants",async(req,res)=>{
@@ -79,7 +85,18 @@ app.delete("/api/v1/restaurants/:id",async(req,res)=>{
 
 })
 
+app.post("/api/v1/restaurants/:id/addReview",async(req,res)=>{
+    try {
+        const {name,review,rating}=req.body;
+        const result=await pool.query("INSERT INTO reviews (restaurant_id,name,review,rating) VALUES($1,$2,$3,$4) RETURNING *",[req.params.id,name,review,rating]);
+        res.status(200).json(result.rows[0]);
+        
+    } catch (error) {
+        console.error(error.message);
+        
+    }
 
+})
 
 
 
